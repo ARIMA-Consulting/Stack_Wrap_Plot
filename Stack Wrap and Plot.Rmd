@@ -1,0 +1,342 @@
+---
+title: "Stack, Wrap, and Plot"
+author: "Tyler Harris"
+date: "12/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# If you need to install the packages, uncomment the following 3 lines:
+# install.packages("tidyverse")
+# install.packages("lubridate")
+# install.packages("readxl")
+
+# Load Libraries
+require(tidyverse)
+require(lubridate)
+require(readxl)
+```
+
+```{r}
+# Be sure to set a working directory first. This can be done with the setwd() command or manually in RStudio
+
+# setwd()
+```
+
+```{r}
+### Download Data ###
+
+# This is the link to the European Commission's Economic Sentiment Indicator along with a ton of other data. We will not get into interpretation, but this a great example of publicly available real data that we will use for this project!
+
+# Here's the link to the website: https://ec.europa.eu/info/business-economy-euro/indicators-statistics/economic-databases/business-and-consumer-surveys/download-business-and-consumer-survey-data/time-series_en
+```
+
+```{r}
+# Define URL to the first link, "Seasonally Adjusted Data (total sector)" ZIP file
+url = 'https://ec.europa.eu/economy_finance/db_indicators/surveys/documents/series/nace2_ecfin_2011/main_indicators_sa_nace2.zip'
+
+# Create temp file, download, and unzip
+temp <- tempfile()
+download.file(url, temp)
+unzip(temp)
+```
+
+```{r}
+# Create EuroData for Raw Data
+# We only need the data in the MONTHLY sheet in the excel file. There is a lot of other data in here, which you can explore on your own. 
+
+EuroData <- read_excel("main_indicators_nace2.xlsx", sheet = "MONTHLY")
+```
+
+```{r}
+### Clean up the data ###
+
+# rename first column to Date
+names(EuroData)[1] <- "Date"
+```
+
+```{r}
+# make data a tibble
+EuroData <- as_tibble(EuroData)
+```
+
+```{r}
+# Fix date column
+EuroData$Date <- ymd(EuroData$Date)
+```
+
+```{r}
+# grep the "" columns out
+remove_columns <- c(grep("[0-9]+", names(EuroData), value = T))
+```
+
+```{r}
+# actually remove the useless columns
+EuroData <- EuroData[,!(names(EuroData) %in% remove_columns)]
+```
+
+```{r}
+# convert data to numeric
+EuroData <- EuroData %>%
+  mutate_if(is.character, as.numeric)
+```
+
+```{r}
+# get country abbreviations
+country_abbvs <- c(unique(substr(names(EuroData[2:246]), 1, 2)))
+```
+
+```{r}
+# Stack the data to make ggplot happy
+EuroData <- data.frame(Date = EuroData$Date, stack(EuroData[2:246]))
+```
+
+```{r}
+# Create Plotting function
+country_plot <- function(x) {
+  ggplot(data = subset(x, !is.na(values)), aes(x = Date, y = values)) +
+  geom_line() +
+  stat_smooth(method = "lm", se = FALSE) +
+  facet_wrap(. ~ ind, ncol = 4)
+}
+```
+
+```{r}
+# Subset each country's data
+for(i in 1:length(country_abbvs)) {
+  # create generic filter for each country
+  data_filter <- unique(grep(country_abbvs[i], EuroData$ind, value = T)) # This works
+  
+  # filter for each country
+  country_subset_data <- EuroData %>%
+    filter(ind %in% data_filter)
+  
+  # create object names and pass in each country's data
+  assign(paste0(country_abbvs[i],"_data"), country_subset_data)
+}
+```
+
+```{r}
+# Get rid of the weirdness in EE, ES, SE, and SI
+EE_data <- EE_data %>%
+  filter(substr(ind, 1,2) == "EE")
+ES_data <- ES_data %>%
+  filter(substr(ind, 1,2) == "ES")
+SE_data <- SE_data %>%
+  filter(substr(ind, 1,2) == "SE")
+SI_data <- SI_data %>%
+  filter(substr(ind, 1,2) == "SI")
+```
+
+### Plot the data ###
+
+### Tier 1 Start ###
+
+```{r}
+# EU - European Union
+country_plot(EU_data)
+```
+
+```{r}
+# EA - European Area
+country_plot(EA_data)
+```
+
+```{r}
+# DE - Germany
+country_plot(DE_data)
+```
+
+```{r}
+# UK - United Kingdom
+country_plot(UK_data)
+```
+
+```{r}
+# FR - France
+country_plot(FR_data)
+```
+
+```{r}
+# IT - Italy
+country_plot(IT_data)
+```
+
+```{r}
+# ES - Spain
+country_plot(ES_data)
+```
+
+```{r}
+# NL - Netherlands
+country_plot(NL_data)
+```
+
+### Tier 2 ###
+
+```{r}
+# SE - Sweden
+country_plot(SE_data)
+```
+
+```{r}
+# PL - Poland
+country_plot(PL_data)
+```
+
+```{r}
+# BE - Belgium
+country_plot(BE_data)
+```
+
+```{r}
+# AT - Austria
+country_plot(AT_data)
+```
+
+```{r}
+# IE
+country_plot(IE_data)
+```
+
+```{r}
+# DK - Denmark
+country_plot(DK_data)
+```
+
+```{r}
+# FI - Finland
+country_plot(FI_data)
+```
+
+```{r}
+# CZ - Czech Republic
+country_plot(CZ_data)
+```
+
+```{r}
+# RO - Romania
+country_plot(RO_data)
+```
+
+```{r}
+# PT - Portugal
+country_plot(PT_data)
+```
+
+```{r}
+# EL - Greece
+country_plot(EL_data)
+```
+
+### Tier 3 ###
+```{r}
+# AL
+country_plot(AL_data)
+```
+
+```{r}
+# BG - Bulgaria
+country_plot(BG_data)
+```
+
+```{r}
+# CY - Cyprus
+country_plot(CY_data)
+```
+
+```{r}
+# EE - Estonia
+country_plot(EE_data)
+```
+
+```{r}
+# HR
+country_plot(HR_data)
+```
+
+```{r}
+# HU - Hungary
+country_plot(HU_data)
+```
+
+```{r}
+# LT - Lithuania
+country_plot(LT_data)
+```
+
+```{r}
+# LU - Luxembourg
+country_plot(LU_data)
+```
+
+```{r}
+# LV - Latvia
+country_plot(LV_data)
+```
+
+```{r}
+# ME
+country_plot(ME_data)
+```
+
+```{r}
+# MK
+country_plot(MK_data)
+```
+
+```{r}
+# MT
+country_plot(MT_data)
+```
+
+```{r}
+# RS
+country_plot(RS_data)
+```
+
+```{r}
+# SI - Slovenia
+country_plot(SI_data)
+```
+
+```{r}
+# SK - Slovak Republic
+country_plot(SK_data)
+```
+
+```{r}
+# TR
+country_plot(TR_data)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
